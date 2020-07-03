@@ -158,6 +158,9 @@ pixman_renderer_compute_transform(pixman_transform_t *transform_out,
 	   specified buffer transform/scale */
 	matrix = output->inverse_matrix;
 
+	weston_matrix_scale(&matrix,
+			    1 / output->down_scale, 1 / output->down_scale, 1);
+
 	if (ev->transform.enabled) {
 		weston_matrix_multiply(&matrix, &ev->transform.inverse);
 	} else {
