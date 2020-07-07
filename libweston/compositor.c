@@ -608,6 +608,7 @@ weston_surface_create(struct weston_compositor *compositor)
 	pixman_region32_init(&surface->damage);
 	pixman_region32_init(&surface->opaque);
 	region_init_infinite(&surface->input);
+	pixman_region32_init(&surface->hole);
 
 	wl_list_init(&surface->views);
 	wl_list_init(&surface->paint_node_list);
@@ -2378,6 +2379,7 @@ weston_surface_unref(struct weston_surface *surface)
 	pixman_region32_fini(&surface->damage);
 	pixman_region32_fini(&surface->opaque);
 	pixman_region32_fini(&surface->input);
+	pixman_region32_fini(&surface->hole);
 
 	wl_resource_for_each_safe(cb, next, &surface->frame_callback_list)
 		wl_resource_destroy(cb);
@@ -3899,6 +3901,33 @@ surface_set_opaque_region(struct wl_client *client,
 
 	if (region_resource) {
 		region = wl_resource_get_user_data(region_resource);
+
+		/**
+		 * HACK: Make a hole for this surface
+		 * Usage:
+		 * 1/ Set the hole region
+		 *  wl_region_add(region, [hole region]);
+		 * 2/ Add a special rect to mark the region as a hole
+		 *  wl_region_add(region, -1, -1, 1, 1);
+		 *  wl_surface_set_opaque_region(surface, region);
+		 */
+		if (pixman_region32_contains_point(&region->region, -1, -1,
+						   NULL)) {
+			pixman_region32_t hole;
+
+			// Subtract the special rect
+			pixman_region32_init_rect(&hole, -1, -1, 1, 1);
+			pixman_region32_subtract(&hole, &region->region,
+						 &hole);
+
+			pixman_region32_copy(&surface->hole, &hole);
+			pixman_region32_fini(&hole);
+
+			// Trigger repaint to apply the hole
+			weston_surface_damage(surface);
+			return;
+		}
+
 		pixman_region32_copy(&surface->pending.opaque,
 				     &region->region);
 	} else {

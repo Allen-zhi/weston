@@ -1715,6 +1715,9 @@ struct weston_surface {
 	enum weston_hdcp_protection desired_protection;
 	enum weston_hdcp_protection current_protection;
 	enum weston_surface_protection_mode protection_mode;
+
+	/* Transparent hole region(excluding it's lower subsurface area) */
+	pixman_region32_t hole;
 };
 
 struct weston_subsurface {
