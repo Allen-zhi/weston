@@ -1910,6 +1910,9 @@ struct weston_surface {
 	enum weston_surface_protection_mode protection_mode;
 
 	struct weston_tearing_control *tear_control;
+
+	/* Transparent hole region(excluding it's lower subsurface area) */
+	pixman_region32_t hole;
 };
 
 struct weston_subsurface {

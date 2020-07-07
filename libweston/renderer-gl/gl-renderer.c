@@ -1164,6 +1164,53 @@ gl_shader_config_init_for_paint_node(struct gl_shader_config *sconf,
 }
 
 static void
+clear_region(struct weston_view *ev, pixman_region32_t *region)
+{
+	pixman_box32_t *rects;
+	int i, n, h = ev->output->height;
+
+	if (ev->alpha < 0.5f)
+		return;
+
+	rects = pixman_region32_rectangles(region, &n);
+	for (i = 0; i < n; i++) {
+		pixman_box32_t r = rects[i];
+		glScissor(r.x1, h - r.y2, r.x2 - r.x1, r.y2 - r.y1);
+		glEnable(GL_SCISSOR_TEST);
+		glClearColor(0, 0, 0, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_SCISSOR_TEST);
+	}
+}
+
+static void
+weston_view_to_global_region(struct weston_view *ev, pixman_region32_t *region,
+			     pixman_region32_t *global_region)
+{
+	struct weston_surface *es = ev->surface;
+	pixman_box32_t *rects;
+	int i, n;
+
+	pixman_region32_clear(global_region);
+
+	rects = pixman_region32_rectangles(region, &n);
+	for (i = 0; i < n; i++) {
+		struct weston_coord_surface s_pos[2] = {
+			weston_coord_surface(rects[i].x1, rects[i].y1, es),
+			weston_coord_surface(rects[i].x2, rects[i].y2, es),
+		};
+		struct weston_coord g_pos[2];
+		g_pos[0] = weston_coord_surface_to_global(ev, s_pos[0]).c;
+		g_pos[1] = weston_coord_surface_to_global(ev, s_pos[1]).c;
+
+		pixman_region32_union_rect(global_region, global_region,
+					   g_pos[0].x, g_pos[0].y,
+					   g_pos[1].x - g_pos[0].x,
+					   g_pos[1].y - g_pos[0].y);
+	}
+}
+
+static void
 draw_paint_node(struct weston_paint_node *pnode,
 		pixman_region32_t *damage /* in global coordinates */)
 {
@@ -1202,6 +1249,37 @@ draw_paint_node(struct weston_paint_node *pnode,
 
 	if (!gl_shader_config_init_for_paint_node(&sconf, pnode, filter))
 		goto out;
+
+	// HACK: Make hole for the surface(excluding it's lower subsurface area)
+	if (pixman_region32_not_empty(&pnode->surface->hole)) {
+		struct weston_subsurface *child;
+		pixman_region32_t hole, region;
+
+		pixman_region32_init(&region);
+		wl_list_for_each_reverse(child, &pnode->surface->subsurface_list,
+				 parent_link) {
+			if (child->surface == pnode->surface)
+				break;
+
+			pixman_region32_union_rect(&region, &region,
+						   child->position.offset.c.x,
+						   child->position.offset.c.y,
+						   child->surface->width,
+						   child->surface->height);
+		}
+
+		pixman_region32_subtract(&region, &pnode->surface->hole, &region);
+		pixman_region32_init(&hole);
+		weston_view_to_global_region(pnode->view, &region, &hole);
+
+		pixman_region32_intersect(&hole, &hole, &repaint);
+
+		weston_region_global_to_output(&hole, pnode->output, &hole);
+		clear_region(pnode->view, &hole);
+
+		pixman_region32_fini(&hole);
+		pixman_region32_fini(&region);
+	}
 
 	/* blended region is whole surface minus opaque region: */
 	pixman_region32_init_rect(&surface_blend, 0, 0,
