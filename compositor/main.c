@@ -4162,6 +4162,9 @@ wet_main(int argc, char *argv[], const struct weston_testsuite_data *test_data)
 	if (idle_time < 0)
 		idle_time = 300; /* default idle timeout, in seconds */
 
+	if (!warm_up)
+		weston_config_section_get_bool(section, "warm-up", &warm_up, false);
+
 	wet.compositor->idle_time = idle_time;
 	wet.compositor->default_pointer_grab = NULL;
 	wet.compositor->exit = handle_exit;
