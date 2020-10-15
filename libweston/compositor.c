@@ -3258,6 +3258,9 @@ weston_compositor_build_view_list(struct weston_compositor *compositor,
 			if (compositor->warm_up && !system_layer) {
 				weston_log("seeing the first app\n");
 				compositor->warm_up = false;
+
+				/* Assuming it's a launcher */
+				view->surface->flags |= SURFACE_STAY_ON_BOTTOM;
 			}
 
 			view_list_add(compositor, view, output);
