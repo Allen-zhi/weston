@@ -1535,7 +1535,11 @@ atomic_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	drm_debug(b, "[atomic][CRTC:%u] flip processing started\n", crtc_id);
 	assert(device->atomic_modeset);
-	assert(output->atomic_complete_pending);
+
+	/* HACK: Disable this check sink the Rockchip BSP 4.4 kernel might
+	 * generate unexpected flip events when dpms changed. */
+	//assert(output->atomic_complete_pending);
+
 	output->atomic_complete_pending = false;
 
 	drm_output_update_complete(output, flags, sec, usec);
