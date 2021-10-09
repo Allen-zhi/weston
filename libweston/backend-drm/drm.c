@@ -1909,15 +1909,21 @@ drm_output_init_pixman(struct drm_output *output, struct drm_backend *b)
 
 	/* FIXME error checking */
 	for (i = 0; i < ARRAY_LENGTH(output->dumb); i++) {
+		struct pixman_renderer_dma_buf dma_buf;
+
 		output->dumb[i] = drm_fb_create_dumb(device, w, h,
 						     options.format->format);
 		if (!output->dumb[i])
 			goto err;
 
+		dma_buf.dma_fd = output->dumb[i]->dma_fd;
+		dma_buf.ptr = output->dumb[i]->map;
+
 		output->renderbuffer[i] =
 			pixman->create_image_from_ptr(&output->base,
 						      options.format, w, h,
-						      output->dumb[i]->map,
+						      /* HACK: For passing dma fd */
+						      (uint32_t *)&dma_buf,
 						      output->dumb[i]->strides[0]);
 		if (!output->renderbuffer[i])
 			goto err;

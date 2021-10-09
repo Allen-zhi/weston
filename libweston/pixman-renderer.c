@@ -981,6 +981,8 @@ pixman_renderer_attach_dmabuf(struct weston_surface *es,
 					     data->ptr + attributes->offset[0],
 					     attributes->stride[0]);
 
+	pixman_image_set_dma_fd(ps->image, attributes->fd[0]);
+
 	ps->buffer_destroy_listener.notify =
 		buffer_state_handle_buffer_destroy;
 	wl_signal_add(&buffer->destroy_signal,
@@ -1703,17 +1705,24 @@ pixman_renderer_create_image_from_ptr(struct weston_output *output,
 	struct pixman_output_state *po = get_output_state(output);
 	struct pixman_renderbuffer *renderbuffer;
 
+	/* HACK: For getting dma fd */
+	struct pixman_renderer_dma_buf *dma_buf =
+		(struct pixman_renderer_dma_buf *)ptr;
+
 	assert(po);
 
 	renderbuffer = xzalloc(sizeof(*renderbuffer));
 
 	renderbuffer->image = pixman_image_create_bits(format->pixman_format,
-						       width, height, ptr,
+						       width, height,
+						       dma_buf->ptr,
 						       rowstride);
 	if (!renderbuffer->image) {
 		free(renderbuffer);
 		return NULL;
 	}
+
+	pixman_image_set_dma_fd(renderbuffer->image, dma_buf->dma_fd);
 
 	pixman_region32_init(&renderbuffer->base.damage);
 	renderbuffer->base.refcount = 2;
