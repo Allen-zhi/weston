@@ -3138,6 +3138,7 @@ weston_output_repaint(struct weston_output *output)
 	int r;
 	uint32_t frame_time_msec;
 	enum weston_hdcp_protection highest_requested = WESTON_HDCP_DISABLE;
+	struct timespec now;
 
 	if (output->destroying)
 		return 0;
@@ -3231,9 +3232,10 @@ weston_output_repaint(struct weston_output *output)
 		wl_resource_destroy(cb);
 	}
 
+	weston_compositor_read_presentation_clock(ec, &now);
 	wl_list_for_each_safe(animation, next, &output->animation_list, link) {
 		animation->frame_counter++;
-		animation->frame(animation, output, &output->frame_time);
+		animation->frame(animation, output, &now);
 	}
 
 	weston_output_capture_info_repaint_done(output->capture_info);
