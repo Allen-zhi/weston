@@ -1342,6 +1342,7 @@ struct weston_compositor {
 	struct weston_output *prefer_output;
 
 	bool warm_up;
+	uint32_t pending_fade_out;
 };
 
 struct weston_solid_buffer_values {
