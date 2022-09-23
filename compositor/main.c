@@ -3802,6 +3802,10 @@ wet_main(int argc, char *argv[], const struct weston_testsuite_data *test_data)
 	wet.compositor->exit = handle_exit;
 	wet.compositor->warm_up = warm_up;
 
+	section = weston_config_get_section(config, "shell", NULL, NULL);
+	weston_config_section_get_int(section, "cursor-size",
+				      &wet.compositor->cursor_size, 0);
+
 	weston_compositor_log_capabilities(wet.compositor);
 
 	server_socket = getenv("WAYLAND_SERVER_SOCKET");
