@@ -3088,6 +3088,10 @@ weston_compositor_build_view_list(struct weston_compositor *compositor,
 				weston_log("seeing the first app\n");
 				compositor->warm_up = false;
 
+#define BOOTANIM "/usr/bin/bootanim"
+				if (!access(BOOTANIM, X_OK))
+					(void)!system(BOOTANIM " stop&");
+
 				/* Assuming it's a launcher */
 				view->surface->flags |= SURFACE_STAY_ON_BOTTOM;
 			}
@@ -3373,6 +3377,7 @@ output_repaint_timer_handler(void *data)
 
 	if (!access(getenv("WESTON_FREEZE_DISPLAY") ? : "", F_OK)) {
 		usleep(DEFAULT_REPAINT_WINDOW * 1000);
+		weston_compositor_build_view_list(compositor, NULL);
 		goto out;
 	}
 
