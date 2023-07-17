@@ -674,6 +674,9 @@ panel_create(struct desktop *desktop, struct output *output)
 
 	panel_add_launchers(panel, desktop);
 
+	/* HACK: Set an dummy initial size for no minimum size */
+	window_schedule_resize(panel->window, 1, 1);
+
 	return panel;
 }
 
@@ -1187,6 +1190,9 @@ background_create(struct desktop *desktop, struct output *output)
 	}
 
 	free(type);
+
+	/* HACK: Set an dummy initial size for no minimum size */
+	window_schedule_resize(background->window, 1, 1);
 
 	return background;
 }
